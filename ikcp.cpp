@@ -213,7 +213,7 @@ static int ikcp_output(ikcpcb *kcp, const void *data, int size)
 // output queue
 void ikcp_qprint(const char *name, const struct IQUEUEHEAD *head)
 {
-#if 1
+#if 0
 	const struct IQUEUEHEAD *p;
 	printf("<%s>: [", name);
 	for (p = head->next; p != head; p = p->next) {
@@ -647,7 +647,7 @@ void ikcp_parse_data(ikcpcb *kcp, IKCPSEG *newseg)
 		ikcp_segment_delete(kcp, newseg);
 	}
 
-#if 1
+#if 0
 	ikcp_qprint("rcvbuf", &kcp->rcv_buf);
 	printf("rcv_nxt=%u\n", kcp->rcv_nxt);
 #endif
@@ -666,12 +666,12 @@ void ikcp_parse_data(ikcpcb *kcp, IKCPSEG *newseg)
 		}
 	}
 
-#if 1
+#if 0
 	ikcp_qprint("queue", &kcp->rcv_queue);
 	printf("rcv_nxt=%u\n", kcp->rcv_nxt);
 #endif
 
-#if 1
+#if 0
 //	printf("snd(buf=%d, queue=%d)\n", kcp->nsnd_buf, kcp->nsnd_que);
 //	printf("rcv(buf=%d, queue=%d)\n", kcp->nrcv_buf, kcp->nrcv_que);
 #endif
