@@ -33,10 +33,6 @@
 #endif
 #endif
 
-#ifndef inline
-#define inline INLINE
-#endif
-
 
 //=====================================================================
 // QUEUE DEFINITION                                                  
