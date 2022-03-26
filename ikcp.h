@@ -161,8 +161,16 @@ typedef struct IQUEUEHEAD iqueue_head;
 struct IKCPSEG
 {
 	struct IQUEUEHEAD node;
-	uint32_t conv;
-	uint32_t cmd;	//命令字，例如IKCP_CMD_ACK确认命令，IKCP_CMD_WASK接收窗口大小询问命令，IKCP_CMD_WINS接收窗口大小告知命令
+	uint32_t conv;	// 连接号。UDP是无连接的，conv用于表示来自哪个客户端。
+	/**
+	 * @brief 命令字段
+	 * IKCP_CMD_PUSH 和 IKCP_CMD_ACK 关联；IKCP_CMD_WASK 和 IKCP_CMD_WINS 关联。
+	 * IKCP_CMD_PUSH	数据推送命令
+	 * IKCP_CMD_ACK 	确认命令
+	 * IKCP_CMD_WASK 	接收窗口大小询问命
+	 * IKCP_CMD_WINS	接收窗口大小告知命令
+	 */
+	uint32_t cmd;	
 	uint32_t frg;	//分片：用户数据可能会被分成多个KCP包，发送出去
 	uint32_t wnd;	//wnd：接收窗口大小，发送方的发送窗口不能超过接收方给出的数值
 	uint32_t ts;	//ts：时间序列
@@ -175,6 +183,7 @@ struct IKCPSEG
 	uint32_t xmit;
 	char data[1];
 };
+
 
 //---------------------------------------------------------------------
 // IKCPCB
@@ -263,11 +272,16 @@ int ikcp_wndsize(ikcpcb *kcp, int sndwnd, int rcvwnd);
 // get how many packet is waiting to be sent
 int ikcp_waitsnd(const ikcpcb *kcp);
 
-// fastest: ikcp_nodelay(kcp, 1, 20, 2, 1)
-// nodelay: 0:disable(default), 1:enable
-// interval: internal update timer interval in millisec, default is 100ms 
-// resend: 0:disable fast resend(default), 1:enable fast resend
-// nc: 0:normal congestion control(default), 1:disable congestion control
+/**
+ * @brief 极速模式ikcp_nodelay(kcp, 1, 10, 2, 1)
+ * 
+ * @param kcp kcp句柄
+ * @param nodelay 是否启用 nodelay模式，0不启用；1启用。
+ * @param interval 协议内部工作的 interval，单位毫秒，比如 10ms或者 20ms
+ * @param resend 快速重传模式，默认0关闭，可以设置2（2次ACK跨越将会直接重传）
+ * @param nc 是否关闭拥塞控制，默认是0代表不关闭，1代表关闭。
+ * @return int 
+ */
 int ikcp_nodelay(ikcpcb *kcp, int nodelay, int interval, int resend, int nc);
 
 int ikcp_rcvbuf_count(const ikcpcb *kcp);
