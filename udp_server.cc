@@ -92,6 +92,11 @@ void onTimerOut()
     ikcp_update(gKcpServer, iclock());
 }
 
+void log(const char *buf, ikcpcb *kcp, void *user)
+{
+    write(STDOUT_FILENO, buf, strlen(buf));
+}
+
 int main(int argc, char **argv)
 {
     eular::InitLog(eular::LogLevel::DEBUG);
@@ -110,6 +115,7 @@ int main(int argc, char **argv)
     gKcpServer = ikcp_create(KCP_KEY, (void *)&cliInfo);
     assert(gKcpServer);
     gKcpServer->output = udp_output;
+    gKcpServer->writelog = log;
 
     ikcp_wndsize(gKcpServer, 8, 8);
     ikcp_nodelay(gKcpServer, 0, 20, 2, 1);

@@ -83,6 +83,11 @@ int udp_output(const char *buf, int len, ikcpcb *kcp, void *user)
     return ::sendto(cliInfo->fd, buf, len, 0, (sockaddr *)&cliInfo->addr, cliInfo->size);
 }
 
+void log(const char *buf, ikcpcb *kcp, void *user)
+{
+    write(STDOUT_FILENO, buf, strlen(buf));
+}
+
 int main(int argc, char **argv)
 {
     int udpSock = create_udp();
@@ -96,6 +101,7 @@ int main(int argc, char **argv)
     gKcpClient = ikcp_create(KCP_KEY, &cliInfo);
     assert(gKcpClient);
     gKcpClient->output = udp_output;
+    gKcpClient->writelog = log;
 
     ikcp_wndsize(gKcpClient, 8, 8);
     ikcp_nodelay(gKcpClient, 0, 20, 2, 1);
