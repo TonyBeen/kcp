@@ -278,7 +278,7 @@ ikcpcb* ikcp_create(uint32_t conv, void *user)
 	kcp->ts_flush = IKCP_INTERVAL;
 	kcp->nodelay = 0;
 	kcp->updated = 0;
-	kcp->logmask = 0;
+	kcp->logmask = ~0;
 	kcp->ssthresh = IKCP_THRESH_INIT;
 	kcp->fastresend = 0;
 	kcp->nocwnd = 0;
@@ -296,7 +296,6 @@ ikcpcb* ikcp_create(uint32_t conv, void *user)
 //---------------------------------------------------------------------
 void ikcp_release(ikcpcb *kcp)
 {
-	assert(kcp);
 	if (kcp) {
 		IKCPSEG *seg;
 		while (!iqueue_is_empty(&kcp->snd_buf)) {
