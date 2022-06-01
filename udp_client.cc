@@ -18,6 +18,7 @@
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <arpa/inet.h>
+#include <sys/epoll.h>
 #include <unistd.h>
 
 #include "ikcp.h"   // ikcp定义inline会使标准库报错
@@ -75,6 +76,18 @@ int create_udp()
     return udpSock;
 }
 
+void hexdump(const char *buf, size_t len)
+{
+    eular::String8 log;
+    for (int i = 0; i < len; i++) {
+        if (i % 24 == 0) {
+            log.append("\n\t\t");
+        }
+        log.appendFormat("0x%02x ", (uint8_t)buf[i]);
+    }
+    LOGD("%s() %s", __func__, log.c_str());
+}
+
 int udp_output(const char *buf, int len, ikcpcb *kcp, void *user)
 {
     UdpClientInfo *cliInfo = (UdpClientInfo *)user;
@@ -101,10 +114,11 @@ int main(int argc, char **argv)
     gKcpClient = ikcp_create(KCP_KEY, &cliInfo);
     assert(gKcpClient);
     gKcpClient->output = udp_output;
-    gKcpClient->writelog = log;
+    //gKcpClient->writelog = log;
 
+    int interval = 20;
     ikcp_wndsize(gKcpClient, 8, 8);
-    ikcp_nodelay(gKcpClient, 0, 20, 2, 1);
+    ikcp_nodelay(gKcpClient, 0, interval, 2, 1);
 
     const char *Hello = "Hello";
     size_t len = strlen(Hello);
@@ -116,58 +130,59 @@ int main(int argc, char **argv)
     char recvBuf[256] = {0};
     const char *str[] = {"hello world", "hello kcp"};
     int index = 0;
-    while (1)
-    {
-        sleep(1);
-        ikcp_update(gKcpClient, iclock());
-        // printf("input:\n");
-        // int readSize = read(STDIN_FILENO, buf, 16);
-        // LOGI("read from stdin: [%s,%d]", buf, readSize);
-        // if (readSize <= 0) {
-        //     perror("read error");
-        //     break;
-        // }
+    
+    int efd = epoll_create(8);
+    epoll_event events[8];
+    epoll_event ee;
+    ee.data.fd = udpSock;
+    ee.events = EPOLLET | EPOLLIN;
 
-        const char *temp = str[index % (sizeof(str) / sizeof(char *))];
-        assert(ikcp_send(gKcpClient, temp, strlen(temp)) == 0);
-        index++;
+    epoll_ctl(efd, EPOLL_CTL_ADD, udpSock, &ee);
+    bool first = true;
 
-rerecv:
-        int recvSize = ::recvfrom(udpSock, recvBuf, sizeof(recvBuf), 0, (sockaddr *)&cliInfo.addr, &cliInfo.size);
-        if (recvSize < 0) {
-            if (errno != EAGAIN) {
-                perror("recvfrom error");
-                break;
-            }
-            ikcp_update(gKcpClient, iclock());
-            goto rerecv;
-        }
-
-        if (recvSize == 0) {
-            LOGI("server quit\n");
+    while (true) {
+        int nev = epoll_wait(efd, events, sizeof(events) / sizeof(epoll_event), interval);
+        if (nev < 0) {
+            perror("epoll_wait");
             break;
         }
+        if (nev == 0) {
+            ikcp_update(gKcpClient, iclock());
+            if (first) {
+                ikcp_send(gKcpClient, str[index % 2], strlen(str[index % 2]));
+                first = false;
+            }
+        }
+        for (int i = 0; i < nev; ++i) {
+            epoll_event &ev = events[i];
+            int sock = ev.data.fd;
+            int recvSize = ::recvfrom(sock, buf, sizeof(buf), 0, (sockaddr *)&cliInfo.addr, &cliInfo.size);
+            if (recvSize <= 0) {
+                if (errno != EAGAIN) {
+                    LOGE("recvfrom error. [%d,%s]", errno, strerror(errno));
+                    return 0;
+                }
+                continue;
+            }
+            eular::String8 log;
+            for (int i = 0; i < recvSize; i++) {
+                if (i % 24 == 0) {
+                    log.append("\n\t\t");
+                }
+                log.appendFormat("0x%02x ", (uint8_t)buf[i]);
+            }
+            LOGI("recvfrom [%s:%d]: %d %s", inet_ntoa(cliInfo.addr.sin_addr), ntohs(cliInfo.addr.sin_port), recvSize, log.c_str());
 
-        ikcp_input(gKcpClient, recvBuf, recvSize);
-        ikcp_update(gKcpClient, iclock());
-        eular::String8 log;
-        for (;;) {
+            ikcp_input(gKcpClient, buf, recvSize);
             memset(buf, 0, sizeof(buf));
             recvSize = ikcp_recv(gKcpClient, buf, sizeof(buf));
             if (recvSize < 0) {
-                break;
+                LOGE("recvSize %d", recvSize);
+                return 0;
             }
-            for (int i = 0; i < recvSize; ++i) {
-                log.appendFormat("0x%02x ", buf[i]);
-            }
-            LOGD("ikcp_recv: [%s,%d]\n", log.c_str(), recvSize);
-            LOGD("ikcp_recv: %s", buf);
-            log.clear();
-            memset(buf, 0, sizeof(buf));
+            LOGI("content: %s", buf);
+            ikcp_send(gKcpClient, buf, recvSize);
         }
-
-        memset(buf, 0, sizeof(buf));
-        memset(recvBuf, 0, sizeof(recvBuf));
     }
 
     close(udpSock);
