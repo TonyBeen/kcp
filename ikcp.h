@@ -161,7 +161,7 @@ typedef struct IQUEUEHEAD iqueue_head;
 struct IKCPSEG
 {
 	struct IQUEUEHEAD node;
-	uint32_t conv;	// 连接号。UDP是无连接的，conv用于表示来自哪个客户端。
+	uint32_t conv;		// 连接号。UDP是无连接的，conv用于表示来自哪个客户端。
 	/**
 	 * @brief 命令字段
 	 * IKCP_CMD_PUSH 和 IKCP_CMD_ACK 关联；IKCP_CMD_WASK 和 IKCP_CMD_WINS 关联。
@@ -170,18 +170,18 @@ struct IKCPSEG
 	 * IKCP_CMD_WASK 	接收窗口大小询问命
 	 * IKCP_CMD_WINS	接收窗口大小告知命令
 	 */
-	uint32_t cmd;	
-	uint32_t frg;	//分片：用户数据可能会被分成多个KCP包，发送出去
-	uint32_t wnd;	//wnd：接收窗口大小，发送方的发送窗口不能超过接收方给出的数值
-	uint32_t ts;	//ts：时间序列
-	uint32_t sn;	//sn：序列号
-	uint32_t una;	//una:下一个可接收的序列号。其实就是确认号，收到sn=10的包，una为11
-	uint32_t len;	//len：数据长度
-	uint32_t resendts;
-	uint32_t rto;	//超时重传时间
-	uint32_t fastack;
-	uint32_t xmit;
-	char data[1];
+	uint32_t cmd;
+	uint32_t frg;		// 分片：用户数据可能会被分成多个KCP包，发送出去
+	uint32_t wnd;		// 接收窗口大小，发送方的发送窗口不能超过接收方给出的数值
+	uint32_t ts;		// 时间序列
+	uint32_t sn;		// 序列号
+	uint32_t una;		// 下一个可接收的序列号。其实就是确认号(代表前面的数据包都收到了)，收到sn=10的包，una为11
+	uint32_t len;		// 数据长度
+	uint32_t resendts;	// 重发时间序列
+	uint32_t rto;		// 超时重传时间
+	uint32_t fastack;	// 快速重传机制，记录被跳过的次数，超过次数进行快速重传
+	uint32_t xmit;		// 发送次数
+	char data[1];		// 数据
 };
 
 
