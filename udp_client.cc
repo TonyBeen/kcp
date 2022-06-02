@@ -149,7 +149,7 @@ int main(int argc, char **argv)
         if (nev == 0) {
             ikcp_update(gKcpClient, iclock());
             if (first) {
-                ikcp_send(gKcpClient, str[index % 2], strlen(str[index % 2]));
+                ikcp_send(gKcpClient, str[0], strlen(str[0]));
                 first = false;
             }
         }
@@ -182,6 +182,10 @@ int main(int argc, char **argv)
             }
             LOGI("content: %s", buf);
             ikcp_send(gKcpClient, buf, recvSize);
+            index++;
+        }
+        if (index == 4) {
+            break;
         }
     }
 
