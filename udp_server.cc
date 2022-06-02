@@ -5,9 +5,6 @@
     > Created Time: Thu 24 Feb 2022 03:34:46 PM CST
  ************************************************************************/
 
-#include <utils/string8.h>
-#include <log/log.h>
-
 #include <stdio.h>
 #include <assert.h>
 #include <string.h>
@@ -15,8 +12,11 @@
 #include <stdint.h>
 #include <iostream>
 
+#include <fcntl.h>
+#include <time.h>
 #include <sys/socket.h>
 #include <sys/types.h>
+#include <sys/time.h>
 #include <arpa/inet.h>
 #include <sys/epoll.h>
 #include <unistd.h>
@@ -24,8 +24,6 @@
 #include "ikcp.h"   // ikcp定义inline会使标准库报错
 
 using namespace std;
-
-#define LOG_TAG "udp_server"
 
 #define KCP_KEY     0x1024
 #define LOCAL_IP    "172.25.12.215"
@@ -77,16 +75,20 @@ int create_udp_server()
     return udpSock;
 }
 
-void hexdump(const char *buf, size_t len)
+std::string hexdump(const char *buf, size_t len)
 {
-    eular::String8 log;
+    std::string log;
+    char temp[128] = {0};
     for (int i = 0; i < len; i++) {
         if (i % 24 == 0) {
             log.append("\n\t\t");
         }
-        log.appendFormat("0x%02x ", (uint8_t)buf[i]);
+        snprintf(temp, sizeof(temp), "0x%02x ", (uint8_t)buf[i]);
+        log.append(temp);
     }
-    LOGD("%s() %s", __func__, log.c_str());
+
+    log.append("\n");
+    return log;
 }
 
 int udp_output(const char *buf, int len, ikcpcb *kcp, void *user)
@@ -94,7 +96,8 @@ int udp_output(const char *buf, int len, ikcpcb *kcp, void *user)
     UdpClientInfo *cliInfo = (UdpClientInfo *)user;
     assert(cliInfo->fd > 0);
 
-    //hexdump(buf, len);
+    std::string log = hexdump(buf, len);
+    printf("%s() %s\n", __func__, log.c_str());
     return ::sendto(cliInfo->fd, buf, len, 0, (sockaddr *)&cliInfo->addr, cliInfo->size);
 }
 
@@ -110,9 +113,6 @@ void log(const char *buf, ikcpcb *kcp, void *user)
 
 int main(int argc, char **argv)
 {
-    eular::InitLog(eular::LogLevel::DEBUG);
-    eular::addOutputNode(eular::LogWrite::FILEOUT);
-
     int udpSock = create_udp_server();
     UdpClientInfo cliInfo;
     cliInfo.fd = udpSock;
@@ -135,7 +135,7 @@ int main(int argc, char **argv)
 
     epoll_ctl(efd, EPOLL_CTL_ADD, udpSock, &ee);
 
-    LOGI("udp server listen on %s:%d\n", LOCAL_IP, UDP_PORT);
+    printf("udp server listen on %s:%d\n", LOCAL_IP, UDP_PORT);
     char buf[1024] = {0};
     while (1) {
         int nev = epoll_wait(efd, events, sizeof(events) / sizeof(epoll_event), interval);
@@ -152,28 +152,22 @@ int main(int argc, char **argv)
             int recvSize = ::recvfrom(sock, buf, sizeof(buf), 0, (sockaddr *)&cliInfo.addr, &cliInfo.size);
             if (recvSize <= 0) {
                 if (errno != EAGAIN) {
-                    LOGE("recvfrom error. [%d,%s]", errno, strerror(errno));
+                    printf("recvfrom error. [%d,%s]\n", errno, strerror(errno));
                     return 0;
                 }
                 continue;
             }
-            eular::String8 log;
-            for (int i = 0; i < recvSize; i++) {
-                if (i % 24 == 0) {
-                    log.append("\n\t\t");
-                }
-                log.appendFormat("0x%02x ", (uint8_t)buf[i]);
-            }
-            LOGI("recvfrom [%s:%d]: %d %s", inet_ntoa(cliInfo.addr.sin_addr), ntohs(cliInfo.addr.sin_port), recvSize, log.c_str());
+            std::string log = hexdump(buf, recvSize);
+            printf("recvfrom [%s:%d]: %d %s\n", inet_ntoa(cliInfo.addr.sin_addr), ntohs(cliInfo.addr.sin_port), recvSize, log.c_str());
 
             ikcp_input(gKcpServer, buf, recvSize);
             memset(buf, 0, sizeof(buf));
             recvSize = ikcp_recv(gKcpServer, buf, sizeof(buf));
             if (recvSize < 0) {
-                LOGE("recvSize %d", recvSize);
+                printf("recvSize %d\n", recvSize);
                 continue;
             }
-            LOGI("content: %s", buf);
+            printf("content: %s\n", buf);
             ikcp_send(gKcpServer, buf, recvSize);
         }
     }
