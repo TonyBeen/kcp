@@ -145,8 +145,6 @@ int main(int argc, char **argv)
         }
         if (nev == 0) {
             ikcp_update(gKcpServer, iclock());
-            interval = ikcp_check(gKcpServer, iclock());
-            printf("interval %d\n", interval);
         }
         for (int i = 0; i < nev; ++i) {
             epoll_event &ev = events[i];
