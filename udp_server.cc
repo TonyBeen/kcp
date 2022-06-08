@@ -26,7 +26,7 @@
 using namespace std;
 
 #define KCP_KEY     0x1024
-#define LOCAL_IP    "172.25.12.215"
+#define LOCAL_IP    "127.0.0.1"
 #define UDP_PORT    8500
 
 ikcpcb *gKcpServer = nullptr;

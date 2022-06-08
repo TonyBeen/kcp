@@ -27,10 +27,10 @@ using namespace std;
 
 #define KCP_KEY         0x1024
 
-#define LOCAL_IP        "172.25.12.215"
+#define LOCAL_IP        "127.0.0.1"
 #define LOCLA_PORT      8600
 
-#define UDP_SERVER_IP   "39.106.218.123"
+#define UDP_SERVER_IP   "127.0.0.1"
 #define UDP_SERVER_PORT 8500
 
 
