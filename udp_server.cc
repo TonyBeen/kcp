@@ -26,7 +26,7 @@
 using namespace std;
 
 #define KCP_KEY     0x1024
-#define LOCAL_IP    "127.0.0.1"
+#define LOCAL_IP    "10.0.24.17"
 #define UDP_PORT    8500
 
 ikcpcb *gKcpServer = nullptr;
@@ -96,8 +96,8 @@ int udp_output(const char *buf, int len, ikcpcb *kcp, void *user)
     UdpClientInfo *cliInfo = (UdpClientInfo *)user;
     assert(cliInfo->fd > 0);
 
-    std::string log = hexdump(buf, len);
-    printf("%s() %s\n", __func__, log.c_str());
+    // std::string log = hexdump(buf, len);
+    // printf("%s() %s\n", __func__, log.c_str());
     return ::sendto(cliInfo->fd, buf, len, 0, (sockaddr *)&cliInfo->addr, cliInfo->size);
 }
 
@@ -124,8 +124,8 @@ int main(int argc, char **argv)
     //gKcpServer->writelog = log;
 
     int interval = 20;
-    ikcp_wndsize(gKcpServer, 8, 8);
-    ikcp_nodelay(gKcpServer, 0, interval, 2, 1);
+    ikcp_wndsize(gKcpServer, 512, 512);
+    ikcp_nodelay(gKcpServer, 0, interval, 2, 2);
 
     int efd = epoll_create(8);
     epoll_event events[8];
@@ -158,7 +158,8 @@ int main(int argc, char **argv)
                 continue;
             }
             std::string log = hexdump(buf, recvSize);
-            printf("recvfrom [%s:%d]: %d %s\n", inet_ntoa(cliInfo.addr.sin_addr), ntohs(cliInfo.addr.sin_port), recvSize, log.c_str());
+            printf("recvfrom [%s:%d]: %d\n", inet_ntoa(cliInfo.addr.sin_addr),
+                ntohs(cliInfo.addr.sin_port), recvSize);
 
             ikcp_input(gKcpServer, buf, recvSize);
             memset(buf, 0, sizeof(buf));
@@ -168,7 +169,7 @@ int main(int argc, char **argv)
                 continue;
             }
             printf("content: %s\n", buf);
-            ikcp_send(gKcpServer, buf, recvSize);
+            // ikcp_send(gKcpServer, buf, recvSize);
         }
     }
 

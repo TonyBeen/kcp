@@ -120,8 +120,8 @@ int main(int argc, char **argv)
     //gKcpClient->writelog = log;
 
     int interval = 20;
-    ikcp_wndsize(gKcpClient, 8, 8);
-    ikcp_nodelay(gKcpClient, 0, interval, 2, 1);
+    ikcp_wndsize(gKcpClient, 512, 512);
+    ikcp_nodelay(gKcpClient, 0, interval, 2, 2);
 
     char buf[256] = {0};
     char recvBuf[256] = {0};
